@@ -164,7 +164,7 @@ if __name__ == '__main__':
         trainNum = trainData.shape[0]
         gradWo, gradbo, gradWh, gradbh = 0, 0, 0, 0
         for j in range(trainNum):
-            Delta_2 = (-trainTarget[j, :] / (X_2[j, :] + 1e-5)) * gradSoftmax(S_2[j, :])
+            Delta_2 = (-trainTarget[j, :] / (X_2[j, :] + 1e-9)) * gradSoftmax(S_2[j, :])
             gradWo += np.dot(X_1[j, :].reshape(-1, 1), Delta_2.reshape(1, -1))
             gradbo += Delta_2
             Delta_1 = np.dot(Delta_2, W_o.T) * gradRelu(S_1[j, :])
