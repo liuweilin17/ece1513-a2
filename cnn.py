@@ -10,11 +10,19 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 from __future__ import division, print_function, absolute_import
 
+import os
 import tensorflow as tf
+from starter import *
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Import MNIST data
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+# from tensorflow.examples.tutorials.mnist import input_data
+# mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+
+''' data processing '''
+trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+trainData, validData, testData = flattenData(trainData), flattenData(validData), flattenData(testData)
+trainTarget, validTarget, testTarget = convertOneHot(trainTarget, validTarget, testTarget)
 
 # Training Parameters
 learning_rate = 0.001

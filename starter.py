@@ -1,11 +1,5 @@
-import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
-import time
-import os
-import sys
 import json
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Implementation of a neural network using only Numpy
 # trained using gradient descent with momentum
@@ -195,5 +189,6 @@ if __name__ == '__main__':
         print("no log_name")
     else:
         json.dump(log, open(log_name, 'w'))
+        print("write {} done".format(log_name))
 
 
