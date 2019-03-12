@@ -117,14 +117,19 @@ if __name__ == '__main__':
     trainData, validData, testData = flattenData(trainData), flattenData(validData), flattenData(testData)
     trainTarget, validTarget, testTarget = convertOneHot(trainTarget, validTarget, testTarget)
 
-    # exp1
-    print('exp1')
     ''' back propagation '''
     # configuration
     epochs = 200
-    hidden_units = 1000
+    hidden_units = 100
     classes = trainTarget.shape[1]
     features = trainData.shape[1]
+    gama, alpha = 0.9, 0.001
+    log_name = ""
+    log = []
+    log.append({
+        "hidden_units": hidden_units,
+        "learning_rate": alpha
+    })
 
     # initialize the weights and bias
     W_h = XaiverInit(features, hidden_units, (features, hidden_units))
@@ -138,7 +143,6 @@ if __name__ == '__main__':
     v_bo = np.full((1, classes), 1e-5)
 
     # training
-    log = []
     for i in range(epochs):
         # caculate all X, S, losses and accuracy with forward propagation
         _, _, _, X_2 = forward(testData, W_h, b_h, W_o, b_o)
@@ -159,8 +163,8 @@ if __name__ == '__main__':
             "validacc": validAcc,
             "testacc": testAcc
         })
-        print('iterations {}: trainloss {}, validloss {}, testloss {}'.format(i, trainCE, validCE, testCE))
-        print('iterations {}: trainacc {}, validacc {}, testacc {}'.format(i, trainAcc, validAcc, testAcc))
+        # print('iterations {}: trainloss {}, validloss {}, testloss {}'.format(i, trainCE, validCE, testCE))
+        # print('iterations {}: trainacc {}, validacc {}, testacc {}'.format(i, trainAcc, validAcc, testAcc))
 
         # calculate gradWo, gradbo, gradWh, gradbh
         trainNum = trainData.shape[0]
@@ -178,7 +182,6 @@ if __name__ == '__main__':
         gradbh /= trainNum
 
         # gd with momentum
-        gama, alpha = 0.9, 0.0015
         v_Wo = gama * v_Wo + alpha * gradWo
         W_o -= v_Wo
         v_bo = gama * v_bo + alpha * gradbo
@@ -188,158 +191,9 @@ if __name__ == '__main__':
         v_bh = gama * v_bh + alpha * gradbh
         b_h -= v_bh
 
-    json.dump(log, open('1000_003.log', 'w'))
-    # exp1 end
-
-    sys.exit(0)
-
-    # exp2
-    print('exp2')
-    ''' back propagation '''
-    # configuration
-    epochs = 200
-    hidden_units = 1000
-    classes = trainTarget.shape[1]
-    features = trainData.shape[1]
-
-    # initialize the weights and bias
-    W_h = XaiverInit(features, hidden_units, (features, hidden_units))
-    v_Wh = np.full((features, hidden_units), 1e-5)
-    b_h = XaiverInit(features, hidden_units, (1, hidden_units))
-    v_bh = np.full((1, hidden_units), 1e-5)
-
-    W_o = XaiverInit(hidden_units, classes, (hidden_units, classes))
-    v_Wo = np.full((hidden_units, classes), 1e-5)
-    b_o = XaiverInit(hidden_units, classes, (1, classes))
-    v_bo = np.full((1, classes), 1e-5)
-
-    # training
-    log = []
-    for i in range(epochs):
-        # caculate all X, S, losses and accuracy with forward propagation
-        _, _, _, X_2 = forward(testData, W_h, b_h, W_o, b_o)
-        testCE = averageCE(testTarget, X_2)
-        testAcc = accuracy(testTarget, X_2)
-        _, _, _, X_2 = forward(validData, W_h, b_h, W_o, b_o)
-        validCE = averageCE(validTarget, X_2)
-        validAcc = accuracy(validTarget, X_2)
-        S_1, X_1, S_2, X_2 = forward(trainData, W_h, b_h, W_o, b_o)
-        trainCE = averageCE(trainTarget, X_2)
-        trainAcc = accuracy(trainTarget, X_2)
-        log.append({
-            'iterations': i,
-            "trainloss": trainCE,
-            "validloss": validCE,
-            "testloss": testCE,
-            "trainacc": trainAcc,
-            "validacc": validAcc,
-            "testacc": testAcc
-        })
-        print('iterations {}: trainloss {}, validloss {}, testloss {}'.format(i, trainCE, validCE, testCE))
-        print('iterations {}: trainacc {}, validacc {}, testacc {}'.format(i, trainAcc, validAcc, testAcc))
-
-        # calculate gradWo, gradbo, gradWh, gradbh
-        trainNum = trainData.shape[0]
-        gradWo, gradbo, gradWh, gradbh = 0, 0, 0, 0
-        for j in range(trainNum):
-            Delta_2 = (-trainTarget[j, :] / (X_2[j, :] + 1e-5)) * gradSoftmax(S_2[j, :])
-            gradWo += np.dot(X_1[j, :].reshape(-1, 1), Delta_2.reshape(1, -1))
-            gradbo += Delta_2
-            Delta_1 = np.dot(Delta_2, W_o.T) * gradRelu(S_1[j, :])
-            gradWh += np.dot(trainData[j, :].reshape(-1, 1), Delta_1.reshape(1, -1))
-            gradbh += Delta_1
-        gradWo /= trainNum
-        gradbo /= trainNum
-        gradWh /= trainNum
-        gradbh /= trainNum
-
-        # gd with momentum
-        gama, alpha = 0.9, 0.005
-        v_Wo = gama * v_Wo + alpha * gradWo
-        W_o -= v_Wo
-        v_bo = gama * v_bo + alpha * gradbo
-        b_o -= v_bo
-        v_Wh = gama * v_Wh + alpha * gradWh
-        W_h -= v_Wh
-        v_bh = gama * v_bh + alpha * gradbh
-        b_h -= v_bh
-
-    json.dump(log, open('1000_005.log', 'w'))
-    # exp2 end
-
-    # exp3
-    print('exp3')
-    ''' back propagation '''
-    # configuration
-    epochs = 200
-    hidden_units = 1000
-    classes = trainTarget.shape[1]
-    features = trainData.shape[1]
-
-    # initialize the weights and bias
-    W_h = XaiverInit(features, hidden_units, (features, hidden_units))
-    v_Wh = np.full((features, hidden_units), 1e-5)
-    b_h = XaiverInit(features, hidden_units, (1, hidden_units))
-    v_bh = np.full((1, hidden_units), 1e-5)
-
-    W_o = XaiverInit(hidden_units, classes, (hidden_units, classes))
-    v_Wo = np.full((hidden_units, classes), 1e-5)
-    b_o = XaiverInit(hidden_units, classes, (1, classes))
-    v_bo = np.full((1, classes), 1e-5)
-
-    # training
-    log = []
-    for i in range(epochs):
-        # caculate all X, S, losses and accuracy with forward propagation
-        _, _, _, X_2 = forward(testData, W_h, b_h, W_o, b_o)
-        testCE = averageCE(testTarget, X_2)
-        testAcc = accuracy(testTarget, X_2)
-        _, _, _, X_2 = forward(validData, W_h, b_h, W_o, b_o)
-        validCE = averageCE(validTarget, X_2)
-        validAcc = accuracy(validTarget, X_2)
-        S_1, X_1, S_2, X_2 = forward(trainData, W_h, b_h, W_o, b_o)
-        trainCE = averageCE(trainTarget, X_2)
-        trainAcc = accuracy(trainTarget, X_2)
-        log.append({
-            'iterations': i,
-            "trainloss": trainCE,
-            "validloss": validCE,
-            "testloss": testCE,
-            "trainacc": trainAcc,
-            "validacc": validAcc,
-            "testacc": testAcc
-        })
-        print('iterations {}: trainloss {}, validloss {}, testloss {}'.format(i, trainCE, validCE, testCE))
-        print('iterations {}: trainacc {}, validacc {}, testacc {}'.format(i, trainAcc, validAcc, testAcc))
-
-        # calculate gradWo, gradbo, gradWh, gradbh
-        trainNum = trainData.shape[0]
-        gradWo, gradbo, gradWh, gradbh = 0, 0, 0, 0
-        for j in range(trainNum):
-            Delta_2 = (-trainTarget[j, :] / (X_2[j, :] + 1e-5)) * gradSoftmax(S_2[j, :])
-            gradWo += np.dot(X_1[j, :].reshape(-1, 1), Delta_2.reshape(1, -1))
-            gradbo += Delta_2
-            Delta_1 = np.dot(Delta_2, W_o.T) * gradRelu(S_1[j, :])
-            gradWh += np.dot(trainData[j, :].reshape(-1, 1), Delta_1.reshape(1, -1))
-            gradbh += Delta_1
-        gradWo /= trainNum
-        gradbo /= trainNum
-        gradWh /= trainNum
-        gradbh /= trainNum
-
-        # gd with momentum
-        gama, alpha = 0.9, 0.01
-        v_Wo = gama * v_Wo + alpha * gradWo
-        W_o -= v_Wo
-        v_bo = gama * v_bo + alpha * gradbo
-        b_o -= v_bo
-        v_Wh = gama * v_Wh + alpha * gradWh
-        W_h -= v_Wh
-        v_bh = gama * v_bh + alpha * gradbh
-        b_h -= v_bh
-
-    json.dump(log, open('1000_01.log', 'w'))
-    # exp3 end
-
+    if not log_name:
+        print("no log_name")
+    else:
+        json.dump(log, open(log_name, 'w'))
 
 
