@@ -119,6 +119,7 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 init = tf.global_variables_initializer()
 
 # Start training
+print('L2_norm: {}, Dropout: {}'.format(L2_norm, dropout))
 with tf.Session() as sess:
     sess.run(init)
 
