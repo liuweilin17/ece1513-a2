@@ -3,6 +3,7 @@ matplotlib.use("TkAgg")
 from  matplotlib import pyplot as plt
 import json
 
+
 def transfer(filename):
     train_losses = []
     valid_losses = []
@@ -29,13 +30,43 @@ def transfer(filename):
                 else: pass
     return [train_losses, valid_losses, test_losses, train_acc, valid_acc, test_acc]
 
+def transferCNN(filename):
+    train_losses, valid_losses, test_losses = [], [], []
+    train_acc, valid_acc, test_acc = [], [], []
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'epoch' not in line: continue
+            line_arr = line.strip().split(',')
+            for kv in line_arr:
+                k, v = kv.strip().split(':')
+                if k == 'trainloss':
+                    train_losses.append(float(v))
+                elif k == 'validloss':
+                    valid_losses.append(float(v))
+                elif k == 'testloss':
+                    test_losses.append(float(v))
+                elif k == 'trainacc':
+                    train_acc.append(float(v))
+                elif k == 'validacc':
+                    valid_acc.append(float(v))
+                elif k == 'testacc':
+                    test_acc.append(float(v))
+                else: pass
+    return [train_losses, valid_losses, test_losses, train_acc, valid_acc, test_acc]
+
 if __name__ == '__main__':
 
-    log_name = "2000_001.log"
+    log_name = "cnn.log.dropout3"
 
     if log_name == "1000_001.log":
         train_losses, valid_losses, test_losses, train_acc, valid_acc, test_acc = \
             transfer(log_name)
+        x = range(len(train_losses))
+        print(x)
+
+    elif "cnn" in log_name:
+        train_losses, valid_losses, test_losses, train_acc, valid_acc, test_acc = \
+            transferCNN(log_name)
         x = range(len(train_losses))
         print(x)
 
