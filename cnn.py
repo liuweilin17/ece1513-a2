@@ -25,15 +25,14 @@ trainData, validData, testData = flattenData(trainData), flattenData(validData),
 trainTarget, validTarget, testTarget = convertOneHot(trainTarget, validTarget, testTarget)
 
 # Training Parameters
-learning_rate = 0.001
-num_steps = 200
-batch_size = 128
-display_step = 10
+learning_rate = 0.00001 # for Adam
+batch_size = 32
+epochs = 50
 
 # Network Parameters
-num_input = 784 # MNIST data input (img shape: 28*28)
-num_classes = 10 # MNIST total classes (0-9 digits)
-dropout = 0.75 # Dropout, probability to keep units
+num_input = 784 # img shape: 28*28
+num_classes = 10 # 10 classes 'A-J'
+dropout = 1 # Dropout, probability to keep units
 
 # tf Graph input
 X = tf.placeholder(tf.float32, [None, num_input])
@@ -41,70 +40,74 @@ Y = tf.placeholder(tf.float32, [None, num_classes])
 keep_prob = tf.placeholder(tf.float32) # dropout (keep probability)
 
 
-# Create some wrappers for simplicity
+# convolution and ReLU layer
 def conv2d(x, W, b, strides=1):
-    # Conv2D wrapper, with bias and relu activation
+    # x: input, W: filters with 32 filters, b: biases
     x = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
     x = tf.nn.bias_add(x, b)
     return tf.nn.relu(x)
 
+# batch normalization layer
+def batchnorm(x):
+    axises = np.arange(len(x.shape) - 1)
+    axises = [0,1,2]
+    batch_mean, batch_var = tf.nn.moments(x, axises, name='moments')
+    normed = tf.nn.batch_normalization(x, batch_mean, batch_var, None, None, 1e-5)
+    return normed
 
+# max pooling
 def maxpool2d(x, k=2):
     # MaxPool2D wrapper
-    return tf.nn.max_pool(x, ksize=[1, k, k, 1], strides=[1, k, k, 1],
-                          padding='SAME')
-
+    return tf.nn.max_pool(x, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
 
 # Create model
-def conv_net(x, weights, biases, dropout):
-    # MNIST data input is a 1-D vector of 784 features (28*28 pixels)
-    # Reshape to match picture format [Height x Width x Channel]
-    # Tensor input become 4-D: [Batch Size, Height, Width, Channel]
+def conv_graph(x, weights, biases, dropout):
+
+    # step 1: input 4-D: [Batch Size, Height, Width, Channel]
     x = tf.reshape(x, shape=[-1, 28, 28, 1])
 
-    # Convolution Layer
-    conv1 = conv2d(x, weights['wc1'], biases['bc1'])
-    # Max Pooling (down-sampling)
-    conv1 = maxpool2d(conv1, k=2)
+    # step 2&3: Convolution and relu
+    conv = conv2d(x, weights['wc1'], biases['bc1'])
 
-    # Convolution Layer
-    conv2 = conv2d(conv1, weights['wc2'], biases['bc2'])
-    # Max Pooling (down-sampling)
-    conv2 = maxpool2d(conv2, k=2)
+    # step 4: Batch normalization (might be wrong)
+    conv = batchnorm(conv)
 
-    # Fully connected layer
-    # Reshape conv2 output to fit fully connected layer input
-    fc1 = tf.reshape(conv2, [-1, weights['wd1'].get_shape().as_list()[0]])
-    fc1 = tf.add(tf.matmul(fc1, weights['wd1']), biases['bd1'])
+    # step 5: Max pooling
+    pool = maxpool2d(conv, k=2)
+
+    # step 6: Flatten layer to fit fully connected layer input
+    ft = tf.reshape(pool, [-1, weights['wd1'].get_shape().as_list()[0]])
+
+    # step 7 & 8: Fully connected layer and relu
+    fc1 = tf.add(tf.matmul(ft, weights['wd1']), biases['bd1'])
     fc1 = tf.nn.relu(fc1)
+
     # Apply Dropout
     fc1 = tf.nn.dropout(fc1, dropout)
 
-    # Output, class prediction
+    # step 9: Fully connected layer with output
     out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
+
     return out
 
 # Store layers weight & bias
 weights = {
-    # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
-    # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
-    # fully connected, 7*7*64 inputs, 1024 outputs
-    'wd1': tf.Variable(tf.random_normal([7*7*64, 1024])),
-    # 1024 inputs, 10 outputs (class prediction)
-    'out': tf.Variable(tf.random_normal([1024, num_classes]))
+    # 3x3 conv, 1 input, 32 filters, should have the same type as input.
+    'wc1': tf.Variable(tf.random_normal([3, 3, 1, 32], 0.0, tf.math.sqrt(2 / (3*3 + 3*3)))),
+    # fully connected, 14*14*32 inputs, 784 outputs
+    'wd1': tf.Variable(tf.random_normal([14*14*32, 784], 0.0, tf.math.sqrt(2 / (14*14*32 + 784)))),
+    # 784 inputs, 10 outputs (class prediction)
+    'out': tf.Variable(tf.random_normal([784, num_classes], 0.0, tf.math.sqrt(2 / (784 + 10))))
 }
 
 biases = {
     'bc1': tf.Variable(tf.random_normal([32])),
-    'bc2': tf.Variable(tf.random_normal([64])),
-    'bd1': tf.Variable(tf.random_normal([1024])),
+    'bd1': tf.Variable(tf.random_normal([784])),
     'out': tf.Variable(tf.random_normal([num_classes]))
 }
 
 # Construct model
-logits = conv_net(X, weights, biases, keep_prob)
+logits = conv_graph(X, weights, biases, keep_prob)
 prediction = tf.nn.softmax(logits)
 
 # Define loss and optimizer
@@ -123,27 +126,46 @@ init = tf.global_variables_initializer()
 
 # Start training
 with tf.Session() as sess:
-
-    # Run the initializer
     sess.run(init)
 
-    for step in range(1, num_steps+1):
-        batch_x, batch_y = mnist.train.next_batch(batch_size)
-        # Run optimization op (backprop)
-        sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.8})
-        if step % display_step == 0 or step == 1:
-            # Calculate batch loss and accuracy
-            loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,
-                                                                 Y: batch_y,
-                                                                 keep_prob: 1.0})
-            print("Step " + str(step) + ", Minibatch Loss= " + \
-                  "{:.4f}".format(loss) + ", Training Accuracy= " + \
-                  "{:.3f}".format(acc))
+    # divide mini-batches
+    data_size = trainData.shape[0]
+    num_batches_per_epoch = data_size // batch_size
+    if data_size % batch_size: num_batches_per_epoch += 1
 
-    print("Optimization Finished!")
+    # mini-batch
+    for i in range(epochs):
+        for batch_num in range(num_batches_per_epoch):
+            start_index = batch_num * batch_size
+            end_index = min((batch_num + 1) * batch_size, data_size)
+            feed_dict = {
+                X: trainData[start_index:end_index],
+                Y: trainTarget[start_index:end_index],
+                keep_prob: dropout
+            }
+            sess.run(train_op, feed_dict=feed_dict)
 
-    # Calculate accuracy for 256 MNIST test images
-    print("Testing Accuracy:", \
-        sess.run(accuracy, feed_dict={X: mnist.test.images[:256],
-                                      Y: mnist.test.labels[:256],
-                                      keep_prob: 1.0}))
+        trainloss, trainacc = sess.run([loss_op, accuracy], feed_dict={
+            X: trainData,
+            Y: trainTarget,
+            keep_prob: 1.0
+        })
+
+        validloss, validacc = sess.run([loss_op, accuracy], feed_dict={
+            X: validData,
+            Y: validTarget,
+            keep_prob: 1.0
+        })
+        testloss, testacc = sess.run([loss_op, accuracy], feed_dict={
+            X: testData,
+            Y: testTarget,
+            keep_prob: 1.0
+        })
+
+        # shuffle data in each epoch
+        randIndx = np.arange(data_size)
+        np.random.shuffle(randIndx)
+        trainData, trainTarget = trainData[randIndx], trainTarget[randIndx]
+
+        print("epoch: {}, trainloss: {}, validloss: {}, testloss: {}".format(i, trainloss, validloss, testloss))
+        print("epoch: {}, trainacc: {}, validacc: {}, testacc: {}".format(i, trainacc, validacc, testacc))
