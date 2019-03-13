@@ -13,6 +13,7 @@ from __future__ import division, print_function, absolute_import
 import os
 import tensorflow as tf
 from starter import *
+import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Import MNIST data
@@ -93,11 +94,11 @@ def conv_graph(x, weights, biases, dropout):
 # Store layers weight & bias
 weights = {
     # 3x3 conv, 1 input, 32 filters, should have the same type as input.
-    'wc1': tf.Variable(tf.random_normal([3, 3, 1, 32], 0.0, tf.math.sqrt(2 / (3*3 + 3*3)))),
+    'wc1': tf.Variable(tf.random_normal([3, 3, 1, 32], 0.0, np.sqrt(2 / (3*3 + 3*3)))),
     # fully connected, 14*14*32 inputs, 784 outputs
-    'wd1': tf.Variable(tf.random_normal([14*14*32, 784], 0.0, tf.math.sqrt(2 / (14*14*32 + 784)))),
+    'wd1': tf.Variable(tf.random_normal([14*14*32, 784], 0.0, np.sqrt(2 / (14*14*32 + 784)))),
     # 784 inputs, 10 outputs (class prediction)
-    'out': tf.Variable(tf.random_normal([784, num_classes], 0.0, tf.math.sqrt(2 / (784 + 10))))
+    'out': tf.Variable(tf.random_normal([784, num_classes], 0.0, np.sqrt(2 / (784 + 10))))
 }
 
 biases = {
