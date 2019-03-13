@@ -6,11 +6,7 @@ from starter import *
 import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# Import MNIST data
-# from tensorflow.examples.tutorials.mnist import input_data
-# mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
-
-''' data processing '''
+# Data processing
 trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 trainData, validData, testData = flattenData(trainData), flattenData(validData), flattenData(testData)
 trainTarget, validTarget, testTarget = convertOneHot(trainTarget, validTarget, testTarget)
@@ -22,24 +18,23 @@ epochs = 50
 
 # Network Parameters
 num_input = 784 # img shape: 28*28
-num_classes = 10 # 10 classes 'A-J'
-dropout = 1 # Dropout, probability to keep units
-L2_norm = 0
+num_classes = 10 # 'A-J' classes
+dropout = 1 # probability to keep units
+L2_norm = 0 # L2 normalization
 
-# tf Graph input
+# Graph input
 X = tf.placeholder(tf.float32, [None, num_input])
 Y = tf.placeholder(tf.float32, [None, num_classes])
-keep_prob = tf.placeholder(tf.float32) # dropout (keep probability)
+keep_prob = tf.placeholder(tf.float32)
 
-
-# convolution and ReLU layer
+# Convolution and ReLU layer
 def conv2d(x, W, b, strides=1):
     # x: input, W: filters with 32 filters, b: biases
     x = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
     x = tf.nn.bias_add(x, b)
     return tf.nn.relu(x)
 
-# batch normalization layer
+# Batch normalization layer
 def batchnorm(x):
     axises = np.arange(len(x.shape) - 1)
     axises = [0,1,2]
@@ -47,12 +42,11 @@ def batchnorm(x):
     normed = tf.nn.batch_normalization(x, batch_mean, batch_var, None, None, 1e-5)
     return normed
 
-# max pooling
+# Max pooling layer
 def maxpool2d(x, k=2):
-    # MaxPool2D wrapper
     return tf.nn.max_pool(x, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
 
-# Create model
+# Create graph
 def conv_graph(x, weights, biases, dropout):
 
     # step 1: input 4-D: [Batch Size, Height, Width, Channel]
@@ -74,7 +68,7 @@ def conv_graph(x, weights, biases, dropout):
     fc1 = tf.add(tf.matmul(ft, weights['wd1']), biases['bd1'])
     fc1 = tf.nn.relu(fc1)
 
-    # Apply Dropout
+    # Dropout
     fc1 = tf.nn.dropout(fc1, dropout)
 
     # step 9: Fully connected layer with output
@@ -82,7 +76,7 @@ def conv_graph(x, weights, biases, dropout):
 
     return out
 
-# Store layers weight & bias
+# Weights and biases Variable in tf
 weights = {
     # 3x3 conv, 1 input, 32 filters, should have the same type as input.
     'wc1': tf.Variable(tf.random_normal([3, 3, 1, 32], 0.0, np.sqrt(2 / (3*3 + 3*3)))),
@@ -91,7 +85,6 @@ weights = {
     # 784 inputs, 10 outputs (class prediction)
     'out': tf.Variable(tf.random_normal([784, num_classes], 0.0, np.sqrt(2 / (784 + 10))))
 }
-
 biases = {
     'bc1': tf.Variable(tf.random_normal([32])),
     'bd1': tf.Variable(tf.random_normal([784])),
@@ -110,12 +103,11 @@ loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 train_op = optimizer.minimize(loss_op)
 
-
 # Evaluate model
 correct_pred = tf.equal(tf.argmax(prediction, 1), tf.argmax(Y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-# Initialize the variables (i.e. assign their default value)
+# Initialize the variables
 init = tf.global_variables_initializer()
 
 # Start training
