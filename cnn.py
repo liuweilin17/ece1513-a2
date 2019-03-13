@@ -34,6 +34,7 @@ epochs = 50
 num_input = 784 # img shape: 28*28
 num_classes = 10 # 10 classes 'A-J'
 dropout = 1 # Dropout, probability to keep units
+L2_norm = 0
 
 # tf Graph input
 X = tf.placeholder(tf.float32, [None, num_input])
@@ -112,8 +113,10 @@ logits = conv_graph(X, weights, biases, keep_prob)
 prediction = tf.nn.softmax(logits)
 
 # Define loss and optimizer
+regularization = tf.nn.l2_loss(weights['wc1']) + tf.nn.l2_loss(weights['wd1']) + \
+                 tf.nn.l2_loss(weights['out'])
 loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-    logits=logits, labels=Y))
+    logits=logits, labels=Y)) + regularization * L2_norm
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 train_op = optimizer.minimize(loss_op)
 
